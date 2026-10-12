@@ -107,9 +107,14 @@ fun App(repository: ItemRepository) {
                     )
                 }
                 composable<RestockRoute> {
+                    val shopping by inventoryViewModel.shopping.collectAsStateWithLifecycle()
                     RestockScreen(
                         state = itemsState,
+                        shopping = shopping,
                         onItemClick = { navController.navigate(DetailRoute(it.id)) },
+                        onToggleChecked = { inventoryViewModel.toggleChecked(it.id) },
+                        onStartShopping = inventoryViewModel::startShopping,
+                        onFinishShopping = inventoryViewModel::finishShopping,
                     )
                 }
                 composable<DetailRoute> { entry ->

@@ -36,4 +36,18 @@ class RestockCostTest {
         assertEquals(190, state.restockCostCents)
         assertEquals(1, state.restockWithoutPrice)
     }
+
+    @Test
+    fun cartCostOnlyCountsCheckedItems() {
+        val state = ItemsUiState.Success(
+            listOf(
+                item("Panacotta", quantity = 1, minimum = 4, priceCents = 105).copy(id = "a"),
+                item("Jamón", quantity = 0, minimum = 2, priceCents = 489).copy(id = "b"),
+            ),
+        )
+
+        assertEquals(0, state.cartCostCents(emptySet()))
+        assertEquals(2 * 489, state.cartCostCents(setOf("b")))
+        assertEquals(state.restockCostCents, state.cartCostCents(setOf("a", "b")))
+    }
 }
