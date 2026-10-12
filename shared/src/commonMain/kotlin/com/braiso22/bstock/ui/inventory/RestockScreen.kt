@@ -19,8 +19,14 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import bstock.shared.generated.resources.Res
 import bstock.shared.generated.resources.ic_cart
 import bstock.shared.generated.resources.ic_check_circle
@@ -53,7 +59,20 @@ fun RestockScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeFlexibleTopAppBar(
-                title = { Text(if (success != null && hasItems) formatPrice(success.restockCostCents) else "Por reponer") },
+                title = {
+                    when {
+                        success == null || !hasItems -> Text("Por reponer")
+                        shopping.active -> Text(
+                            shoppingTitle(
+                                cartCents = success.cartCostCents(shopping.checkedIds),
+                                totalCents = success.restockCostCents,
+                                cartColor = MaterialTheme.colorScheme.primary,
+                                totalColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                        )
+                        else -> Text(formatPrice(success.restockCostCents))
+                    }
+                },
                 subtitle = if (success != null && hasItems) {
                     { Text(restockSubtitle(success, shopping)) }
                 } else {
@@ -128,12 +147,19 @@ fun RestockScreen(
     }
 }
 
-/** Explica el total del título; en modo compra añade cuánto va ya en el carro. */
+/** En modo compra: lo que va en el carro en grande y con color, y el total al lado más pequeño ("1,90 € de 3,25 €"). */
+private fun shoppingTitle(cartCents: Int, totalCents: Int, cartColor: Color, totalColor: Color): AnnotatedString =
+    buildAnnotatedString {
+        withStyle(SpanStyle(color = cartColor)) { append(formatPrice(cartCents)) }
+        withStyle(SpanStyle(color = totalColor, fontSize = 0.6.em)) { append(" de ${formatPrice(totalCents)}") }
+    }
+
+/** Explica el número del título; en modo compra, añade lo que falta por coger. */
 private fun restockSubtitle(state: ItemsUiState.Success, shopping: ShoppingUiState): String {
     val parts = mutableListOf<String>()
     if (shopping.active) {
-        val cart = state.cartCostCents(shopping.checkedIds)
-        parts += "En el carro ${formatPrice(cart)} · Falta ${formatPrice(state.restockCostCents - cart)}"
+        parts += "En el carro"
+        parts += "Falta ${formatPrice(state.restockCostCents - state.cartCostCents(shopping.checkedIds))}"
     } else {
         parts += "Total estimado por reponer"
     }
