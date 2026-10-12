@@ -15,8 +15,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -79,31 +82,37 @@ fun App(repository: ItemRepository, sounds: SoundPlayer = NoSound) {
             bottomBar = {
                 if (onInventory || onRestock || onShopping) {
                     val belowMinimumCount = (itemsState as? ItemsUiState.Success)?.belowMinimum?.size ?: 0
-                    NavigationBar {
-                        NavigationBarItem(
-                            selected = onInventory,
-                            onClick = { navController.navigateToTab(InventoryRoute) },
-                            icon = { Icon(painterResource(Res.drawable.ic_home), contentDescription = null) },
-                            label = { Text("Inventario") },
-                        )
-                        NavigationBarItem(
-                            selected = onRestock,
-                            onClick = { navController.navigateToTab(RestockRoute) },
-                            icon = {
-                                BadgedBox(badge = {
-                                    if (belowMinimumCount > 0) Badge { Text(belowMinimumCount.toString()) }
-                                }) {
-                                    Icon(painterResource(Res.drawable.ic_cart), contentDescription = null)
-                                }
-                            },
-                            label = { Text("Por reponer") },
-                        )
-                        NavigationBarItem(
-                            selected = onShopping,
-                            onClick = { navController.navigateToTab(ShoppingRoute) },
-                            icon = { Icon(painterResource(Res.drawable.ic_basket), contentDescription = null) },
-                            label = { Text("Compra") },
-                        )
+                    // Las tres etiquetas tienen que caber a lo ancho: con letra muy grande se partían ("Inventar-io").
+                    val density = LocalDensity.current
+                    CompositionLocalProvider(
+                        LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f)),
+                    ) {
+                        NavigationBar {
+                            NavigationBarItem(
+                                selected = onInventory,
+                                onClick = { navController.navigateToTab(InventoryRoute) },
+                                icon = { Icon(painterResource(Res.drawable.ic_home), contentDescription = null) },
+                                label = { Text("Inventario") },
+                            )
+                            NavigationBarItem(
+                                selected = onRestock,
+                                onClick = { navController.navigateToTab(RestockRoute) },
+                                icon = {
+                                    BadgedBox(badge = {
+                                        if (belowMinimumCount > 0) Badge { Text(belowMinimumCount.toString()) }
+                                    }) {
+                                        Icon(painterResource(Res.drawable.ic_cart), contentDescription = null)
+                                    }
+                                },
+                                label = { Text("Por reponer") },
+                            )
+                            NavigationBarItem(
+                                selected = onShopping,
+                                onClick = { navController.navigateToTab(ShoppingRoute) },
+                                icon = { Icon(painterResource(Res.drawable.ic_basket), contentDescription = null) },
+                                label = { Text("Compra") },
+                            )
+                        }
                     }
                 }
             },

@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braiso22.bstock.data.Item
 import com.braiso22.bstock.data.ItemRepository
-import com.braiso22.bstock.data.formatPrice
+import com.braiso22.bstock.data.formatAmount
 import com.braiso22.bstock.data.parsePrice
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -52,7 +52,7 @@ class ItemFormViewModel(
                             quantity = item.quantity.toString()
                             minimum = item.minimum.toString()
                             imageUrl = item.imageUrl
-                            price = if (item.priceCents > 0) formatPrice(item.priceCents).removeSuffix(" €") else ""
+                            price = if (item.priceCents > 0) formatAmount(item.priceCents) else ""
                             packSize = item.packSize.toString()
                         }
                     }

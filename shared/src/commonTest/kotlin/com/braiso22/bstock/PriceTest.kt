@@ -1,5 +1,6 @@
 package com.braiso22.bstock
 
+import com.braiso22.bstock.data.formatAmount
 import com.braiso22.bstock.data.formatPrice
 import com.braiso22.bstock.data.parsePrice
 import kotlin.test.Test
@@ -10,9 +11,15 @@ class PriceTest {
 
     @Test
     fun formatsCentsAsEuros() {
-        assertEquals("1,08 €", formatPrice(108))
-        assertEquals("0,99 €", formatPrice(99))
-        assertEquals("12,50 €", formatPrice(1250))
+        assertEquals("1,08\u00A0€", formatPrice(108))
+        assertEquals("0,99\u00A0€", formatPrice(99))
+        assertEquals("12,50\u00A0€", formatPrice(1250))
+    }
+
+    @Test
+    fun formatsTheAmountAloneForEditing() {
+        assertEquals("1,08", formatAmount(108))
+        assertEquals(108, parsePrice(formatAmount(108)))
     }
 
     @Test

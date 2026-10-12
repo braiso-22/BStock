@@ -23,8 +23,11 @@ data class Item(
     val restockCostCents: Int get() = packsToBuy * priceCents
 }
 
-/** Céntimos en formato español: 108 → "1,08 €". */
-fun formatPrice(cents: Int): String = "${cents / 100},${(cents % 100).toString().padStart(2, '0')} €"
+/** Céntimos en formato español: 108 → "1,08 €". El espacio no separable evita que el "€" se quede solo en otra línea. */
+fun formatPrice(cents: Int): String = "${formatAmount(cents)}\u00A0€"
+
+/** Solo la cifra, para editarla en un campo de texto: 108 → "1,08". */
+fun formatAmount(cents: Int): String = "${cents / 100},${(cents % 100).toString().padStart(2, '0')}"
 
 /** Lee un precio escrito por el usuario ("1,08", "1.08", "2") en céntimos, o `null` si no es válido. */
 fun parsePrice(text: String): Int? {

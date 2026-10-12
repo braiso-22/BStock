@@ -3,10 +3,9 @@ package com.braiso22.bstock.ui.inventory
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -45,6 +45,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
@@ -56,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import bstock.shared.generated.resources.Res
@@ -63,6 +65,7 @@ import bstock.shared.generated.resources.ic_add
 import bstock.shared.generated.resources.ic_check_circle
 import bstock.shared.generated.resources.ic_remove
 import com.braiso22.bstock.data.Item
+import com.braiso22.bstock.data.formatAmount
 import com.braiso22.bstock.data.formatPrice
 import com.braiso22.bstock.data.parsePrice
 import com.braiso22.bstock.ui.components.ItemImage
@@ -223,19 +226,24 @@ private fun ShoppingItemCard(
             containerColor = if (checked) MaterialTheme.colorScheme.surfaceContainerHighest else containerColor,
         ),
     ) {
-        Row {
-            // La card ya recorta sus esquinas: la imagen va sin redondeo propio para quedar pegada al borde.
-            ItemImage(item.imageUrl, Modifier.size(128.dp), grayscale = checked, shape = RectangleShape)
+        ImageBesideContent(
+            image = {
+                // La card ya recorta sus esquinas: la imagen va sin redondeo propio para quedar pegada al borde.
+                ItemImage(item.imageUrl, grayscale = checked, shape = RectangleShape)
+            },
+        ) {
             Column(
-                modifier = Modifier.weight(1f).padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 4.dp),
+                modifier = Modifier.padding(start = 8.dp, top = 12.dp, end = 8.dp, bottom = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
+                // Los textos llevan el mismo margen interior que los botones de abajo para quedar alineados.
                 Text(
                     text = item.name,
                     style = MaterialTheme.typography.titleMedium,
                     textDecoration = decoration,
-                    maxLines = 2,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 8.dp),
                 )
                 Text(
                     text = "Tienes ${item.quantity} · Mínimo ${item.minimum}" +
@@ -243,26 +251,51 @@ private fun ShoppingItemCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textDecoration = decoration,
+                    modifier = Modifier.padding(horizontal = 8.dp),
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Pegado al texto de arriba aunque el botón tenga su propio margen interior.
-                    TextButton(
-                        onClick = onEditPacks,
-                        contentPadding = PaddingValues(horizontal = 8.dp),
-                        modifier = Modifier.offset(x = (-8).dp),
-                    ) {
+                // Con letra grande o pantalla estrecha el precio baja a otra línea en vez de aplastarse.
+                // Botones con esquinas poco redondeadas: la forma de píldora recortaba el texto si ocupaba dos líneas.
+                val buttonShape = RoundedCornerShape(8.dp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = onEditPacks, shape = buttonShape, contentPadding = PaddingValues(horizontal = 8.dp)) {
                         Text(
                             text = toBuyLabel(item, packs),
                             style = MaterialTheme.typography.titleMedium,
                             color = if (checked) MaterialTheme.colorScheme.onSurfaceVariant else accentColor,
                         )
                     }
-                    Spacer(Modifier.weight(1f))
-                    TextButton(onClick = onEditPrice, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                        Text(if (item.priceCents > 0) formatPrice(packs * item.priceCents) else "Añadir precio")
+                    TextButton(onClick = onEditPrice, shape = buttonShape, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                        Text(
+                            text = if (item.priceCents > 0) formatPrice(packs * item.priceCents) else "Añadir precio",
+                            maxLines = 1,
+                        )
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Imagen a la izquierda y contenido a la derecha. La imagen ocupa hasta un 30 % del ancho (128 dp como mucho)
+ * y crece en alto con el contenido, así no queda hueco debajo cuando la letra es grande.
+ */
+@Composable
+private fun ImageBesideContent(image: @Composable () -> Unit, content: @Composable () -> Unit) {
+    Layout(contents = listOf(image, content)) { (imageMeasurables, contentMeasurables), constraints ->
+        val imageWidth = minOf(128.dp.roundToPx(), constraints.maxWidth * 3 / 10)
+        val contentPlaceable = contentMeasurables.first().measure(
+            Constraints(maxWidth = constraints.maxWidth - imageWidth),
+        )
+        val height = maxOf(imageWidth, contentPlaceable.height)
+        val imagePlaceable = imageMeasurables.first().measure(Constraints.fixed(imageWidth, height))
+        layout(constraints.maxWidth, height) {
+            imagePlaceable.place(0, 0)
+            contentPlaceable.place(imageWidth, 0)
         }
     }
 }
@@ -284,11 +317,11 @@ private fun shoppingSubtitle(state: ItemsUiState.Success, shopping: ShoppingUiSt
     return parts.joinToString(" · ")
 }
 
-/** Qué se va a coger en la tienda: "Comprar 3" en unidades sueltas o "Comprar 2 packs". */
+/** Qué se va a coger en la tienda: "Comprar 3" en unidades sueltas o "Comprar 2 packs" (sin partir "2 packs"). */
 private fun toBuyLabel(item: Item, packs: Int): String = when {
     item.packSize == 1 -> "Comprar $packs"
-    packs == 1 -> "Comprar 1 pack"
-    else -> "Comprar $packs packs"
+    packs == 1 -> "Comprar 1\u00A0pack"
+    else -> "Comprar $packs\u00A0packs"
 }
 
 /** Elige cuánto comprar de un item con +/-; parte de lo que haya ahora y nunca baja de uno. */
@@ -340,7 +373,7 @@ private fun packsSummary(item: Item, packs: Int): String {
 private fun PriceDialog(item: Item, packs: Int, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
     // Texto seleccionado de entrada para que lo que se escriba reemplace el precio actual.
     var field by remember {
-        val text = if (item.priceCents > 0) formatPrice(item.priceCents).removeSuffix(" €") else ""
+        val text = if (item.priceCents > 0) formatAmount(item.priceCents) else ""
         mutableStateOf(TextFieldValue(text, selection = TextRange(0, text.length)))
     }
     val value = parsePrice(field.text)

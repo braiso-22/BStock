@@ -3,6 +3,7 @@ package com.braiso22.bstock.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import bstock.shared.generated.resources.Res
@@ -93,13 +95,26 @@ fun ItemRow(
             },
         ),
     ) {
-        ListItem(
-            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            leadingContent = { ItemImage(item.imageUrl, Modifier.size(56.dp)) },
-            headlineContent = { Text(item.name, style = MaterialTheme.typography.titleMedium) },
-            supportingContent = { Text(supportingText) },
-            trailingContent = trailing,
-        )
+        BoxWithConstraints {
+            // Con letra grande en pantalla estrecha lo de la derecha aplastaría el nombre: pasa debajo del texto.
+            val stacked = trailing != null && maxWidth / LocalDensity.current.fontScale < 300.dp
+            ListItem(
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                leadingContent = { ItemImage(item.imageUrl, Modifier.size(56.dp)) },
+                headlineContent = { Text(item.name, style = MaterialTheme.typography.titleMedium) },
+                supportingContent = {
+                    if (stacked) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(supportingText)
+                            trailing()
+                        }
+                    } else {
+                        Text(supportingText)
+                    }
+                },
+                trailingContent = if (stacked) null else trailing,
+            )
+        }
     }
 }
 
