@@ -50,4 +50,14 @@ class RestockCostTest {
         assertEquals(2 * 489, state.cartCostCents(setOf("b")))
         assertEquals(state.restockCostCents, state.cartCostCents(setOf("a", "b")))
     }
+
+    @Test
+    fun shoppingOrderMovesCheckedItemsToTheEndKeepingOrder() {
+        val state = ItemsUiState.Success(
+            listOf("a", "b", "c", "d").map { item(it, quantity = 0, minimum = 1, priceCents = 100).copy(id = it) },
+        )
+
+        assertEquals(listOf("b", "d", "a", "c"), state.shoppingOrder(setOf("c", "a")).map { it.id })
+        assertEquals(listOf("a", "b", "c", "d"), state.shoppingOrder(emptySet()).map { it.id })
+    }
 }

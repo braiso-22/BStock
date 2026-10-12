@@ -25,6 +25,9 @@ sealed interface ItemsUiState {
         /** Items por reponer que no tienen precio y por tanto no cuentan en [restockCostCents]. */
         val restockWithoutPrice: Int = belowMinimum.count { it.priceCents == 0 }
 
+        /** Lista de la compra: primero lo que falta por coger y al final lo ya marcado, cada grupo en su orden. */
+        fun shoppingOrder(checkedIds: Set<String>): List<Item> = belowMinimum.sortedBy { it.id in checkedIds }
+
         /** Parte de [restockCostCents] que corresponde a los items ya metidos en el carro. */
         fun cartCostCents(checkedIds: Set<String>): Int =
             belowMinimum.filter { it.id in checkedIds }.sumOf { it.restockCostCents }

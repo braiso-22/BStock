@@ -95,10 +95,12 @@ fun RestockScreen(
                     contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 88.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(state.belowMinimum, key = { it.id }) { item ->
+                    val list = if (shopping.active) state.shoppingOrder(shopping.checkedIds) else state.belowMinimum
+                    items(list, key = { it.id }) { item ->
                         val checked = shopping.active && item.id in shopping.checkedIds
                         ItemRow(
                             item = item,
+                            modifier = Modifier.animateItem(),
                             supportingText = "Tienes ${item.quantity} · Mínimo: ${item.minimum}",
                             onClick = { if (shopping.active) onToggleChecked(item) else onItemClick(item) },
                             crossedOut = checked,
