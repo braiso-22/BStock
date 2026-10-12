@@ -6,13 +6,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -24,7 +22,6 @@ import com.braiso22.bstock.ui.components.LoadingContent
 import com.braiso22.bstock.ui.components.MessageContent
 import org.jetbrains.compose.resources.painterResource
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventoryScreen(
     state: ItemsUiState,
@@ -32,7 +29,6 @@ fun InventoryScreen(
     onAddClick: () -> Unit,
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Mi casa") }) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddClick) {
                 Icon(painterResource(Res.drawable.ic_add), contentDescription = "Añadir item")

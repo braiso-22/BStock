@@ -4,22 +4,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import bstock.shared.generated.resources.Res
 import bstock.shared.generated.resources.ic_cart
@@ -35,7 +35,7 @@ import org.jetbrains.compose.resources.painterResource
  * Items con cantidad por debajo del mínimo. Se actualiza solo gracias a la escucha en tiempo real de Firestore.
  * En modo compra, tocar un item lo tacha (o lo destacha) en vez de abrir su detalle.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RestockScreen(
     state: ItemsUiState,
@@ -45,9 +45,23 @@ fun RestockScreen(
     onStartShopping: () -> Unit,
     onFinishShopping: () -> Unit,
 ) {
-    val hasItems = (state as? ItemsUiState.Success)?.belowMinimum?.isNotEmpty() == true
+    val success = state as? ItemsUiState.Success
+    val hasItems = success?.belowMinimum?.isNotEmpty() == true
+    // Barra grande que se encoge al hacer scroll pero nunca desaparece: el total queda siempre a la vista.
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
-        topBar = { TopAppBar(title = { Text(if (shopping.active) "Comprando" else "Por reponer") }) },
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeFlexibleTopAppBar(
+                title = { Text(if (success != null && hasItems) formatPrice(success.restockCostCents) else "Por reponer") },
+                subtitle = if (success != null && hasItems) {
+                    { Text(restockSubtitle(success, shopping)) }
+                } else {
+                    null
+                },
+                scrollBehavior = scrollBehavior,
+            )
+        },
         floatingActionButton = {
             if (shopping.active) {
                 ExtendedFloatingActionButton(
@@ -76,44 +90,35 @@ fun RestockScreen(
                     iconTint = MaterialTheme.colorScheme.primary,
                 )
             } else {
-                Column(modifier.fillMaxSize()) {
-                    // Fuera de la lista para que siga visible al hacer scroll.
-                    RestockTotal(
-                        costCents = state.restockCostCents,
-                        withoutPrice = state.restockWithoutPrice,
-                        cartCents = if (shopping.active) state.cartCostCents(shopping.checkedIds) else null,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 88.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(state.belowMinimum, key = { it.id }) { item ->
-                            val checked = shopping.active && item.id in shopping.checkedIds
-                            ItemRow(
-                                item = item,
-                                supportingText = "Tienes ${item.quantity} · Mínimo: ${item.minimum}",
-                                onClick = { if (shopping.active) onToggleChecked(item) else onItemClick(item) },
-                                crossedOut = checked,
-                                trailing = {
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            text = "Faltan ${item.missing}",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = if (checked) {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            } else {
-                                                MaterialTheme.colorScheme.error
-                                            },
-                                        )
-                                        if (item.priceCents > 0) {
-                                            Text(formatPrice(item.restockCostCents), style = MaterialTheme.typography.bodyMedium)
-                                        }
+                LazyColumn(
+                    modifier = modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 88.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(state.belowMinimum, key = { it.id }) { item ->
+                        val checked = shopping.active && item.id in shopping.checkedIds
+                        ItemRow(
+                            item = item,
+                            supportingText = "Tienes ${item.quantity} · Mínimo: ${item.minimum}",
+                            onClick = { if (shopping.active) onToggleChecked(item) else onItemClick(item) },
+                            crossedOut = checked,
+                            trailing = {
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = "Faltan ${item.missing}",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = if (checked) {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        } else {
+                                            MaterialTheme.colorScheme.error
+                                        },
+                                    )
+                                    if (item.priceCents > 0) {
+                                        Text(formatPrice(item.restockCostCents), style = MaterialTheme.typography.bodyMedium)
                                     }
-                                },
-                            )
-                        }
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -121,28 +126,15 @@ fun RestockScreen(
     }
 }
 
-/** [cartCents] solo se pasa en modo compra: lo que ya está en el carro. */
-@Composable
-private fun RestockTotal(costCents: Int, withoutPrice: Int, cartCents: Int?, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Total estimado", style = MaterialTheme.typography.titleMedium)
-            Text(formatPrice(costCents), style = MaterialTheme.typography.headlineMedium)
-            if (cartCents != null) {
-                Text(
-                    text = "En el carro: ${formatPrice(cartCents)} · Falta: ${formatPrice(costCents - cartCents)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            if (withoutPrice > 0) {
-                Text(
-                    text = if (withoutPrice == 1) "1 item sin precio no está incluido" else "$withoutPrice items sin precio no están incluidos",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-        }
+/** Explica el total del título; en modo compra añade cuánto va ya en el carro. */
+private fun restockSubtitle(state: ItemsUiState.Success, shopping: ShoppingUiState): String {
+    val parts = mutableListOf<String>()
+    if (shopping.active) {
+        val cart = state.cartCostCents(shopping.checkedIds)
+        parts += "En el carro ${formatPrice(cart)} · Falta ${formatPrice(state.restockCostCents - cart)}"
+    } else {
+        parts += "Total estimado por reponer"
     }
+    if (state.restockWithoutPrice > 0) parts += "${state.restockWithoutPrice} sin precio"
+    return parts.joinToString(" · ")
 }
