@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 sealed interface ItemsUiState {
     data object Loading : ItemsUiState
@@ -41,7 +42,7 @@ data class ShoppingUiState(
 )
 
 /** Compartido por la pantalla de inventario y la de "por reponer": ambas leen la misma escucha en tiempo real. */
-class InventoryViewModel(repository: ItemRepository) : ViewModel() {
+class InventoryViewModel(private val repository: ItemRepository) : ViewModel() {
     val state: StateFlow<ItemsUiState> = repository.observeItems()
         .map<List<Item>, ItemsUiState> { ItemsUiState.Success(it) }
         .catch { emit(ItemsUiState.Error(it.message ?: "Error al cargar los items")) }
@@ -56,6 +57,13 @@ class InventoryViewModel(repository: ItemRepository) : ViewModel() {
 
     fun finishShopping() {
         _shopping.value = ShoppingUiState()
+    }
+
+    /** Ajusta el precio por unidad al real de la tienda; el total se recalcula solo con la escucha en tiempo real. */
+    fun updatePrice(id: String, priceCents: Int) {
+        viewModelScope.launch {
+            runCatching { repository.updatePrice(id, priceCents) }
+        }
     }
 
     fun toggleChecked(id: String) {

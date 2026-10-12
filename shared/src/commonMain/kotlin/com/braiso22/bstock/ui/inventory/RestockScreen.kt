@@ -7,23 +7,39 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -32,6 +48,7 @@ import bstock.shared.generated.resources.ic_cart
 import bstock.shared.generated.resources.ic_check_circle
 import com.braiso22.bstock.data.Item
 import com.braiso22.bstock.data.formatPrice
+import com.braiso22.bstock.data.parsePrice
 import com.braiso22.bstock.ui.components.ItemRow
 import com.braiso22.bstock.ui.components.LoadingContent
 import com.braiso22.bstock.ui.components.MessageContent
@@ -48,6 +65,7 @@ fun RestockScreen(
     shopping: ShoppingUiState,
     onItemClick: (Item) -> Unit,
     onToggleChecked: (Item) -> Unit,
+    onPriceChange: (Item, Int) -> Unit,
     onStartShopping: () -> Unit,
     onFinishShopping: () -> Unit,
 ) {
@@ -55,6 +73,7 @@ fun RestockScreen(
     val hasItems = success?.belowMinimum?.isNotEmpty() == true
     // Barra grande que se encoge al hacer scroll pero nunca desaparece: el total queda siempre a la vista.
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    var editingPriceId by remember { mutableStateOf<String?>(null) }
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -134,7 +153,14 @@ fun RestockScreen(
                                             MaterialTheme.colorScheme.error
                                         },
                                     )
-                                    if (item.priceCents > 0) {
+                                    if (shopping.active) {
+                                        TextButton(
+                                            onClick = { editingPriceId = item.id },
+                                            contentPadding = PaddingValues(horizontal = 8.dp),
+                                        ) {
+                                            Text(if (item.priceCents > 0) formatPrice(item.restockCostCents) else "Añadir precio")
+                                        }
+                                    } else if (item.priceCents > 0) {
                                         Text(formatPrice(item.restockCostCents), style = MaterialTheme.typography.bodyMedium)
                                     }
                                 }
@@ -144,6 +170,19 @@ fun RestockScreen(
                 }
             }
         }
+    }
+
+    // Se busca en el estado actual para editar siempre la versión más reciente del item.
+    val editingItem = (state as? ItemsUiState.Success)?.items?.find { it.id == editingPriceId }
+    if (editingItem != null) {
+        PriceDialog(
+            item = editingItem,
+            onDismiss = { editingPriceId = null },
+            onConfirm = {
+                editingPriceId = null
+                onPriceChange(editingItem, it)
+            },
+        )
     }
 }
 
@@ -165,4 +204,37 @@ private fun restockSubtitle(state: ItemsUiState.Success, shopping: ShoppingUiSta
     }
     if (state.restockWithoutPrice > 0) parts += "${state.restockWithoutPrice} sin precio"
     return parts.joinToString(" · ")
+}
+
+@Composable
+private fun PriceDialog(item: Item, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
+    // Texto seleccionado de entrada para que lo que se escriba reemplace el precio actual.
+    var field by remember {
+        val text = if (item.priceCents > 0) formatPrice(item.priceCents).removeSuffix(" €") else ""
+        mutableStateOf(TextFieldValue(text, selection = TextRange(0, text.length)))
+    }
+    val value = parsePrice(field.text)
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(item.name) },
+        text = {
+            OutlinedTextField(
+                value = field,
+                onValueChange = { new -> field = new.copy(text = new.text.filter { it.isDigit() || it == ',' || it == '.' }) },
+                label = { Text("Precio por unidad (€)") },
+                supportingText = { value?.let { Text("Faltan ${item.missing} · ${formatPrice(it * item.missing)}") } },
+                singleLine = true,
+                isError = value == null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { value?.let(onConfirm) }),
+                modifier = Modifier.focusRequester(focusRequester),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { value?.let(onConfirm) }, enabled = value != null) { Text("Guardar") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+    )
 }

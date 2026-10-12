@@ -59,4 +59,14 @@ class InMemoryItemRepositoryTest {
         assertNull(repository.observeItem(id).first())
         assertEquals(emptyList(), repository.observeItems().first())
     }
+
+    @Test
+    fun updatePriceOnlyChangesThePrice() = runTest {
+        val repository = InMemoryItemRepository(initialItems = listOf(item("Leche", quantity = 3).copy(priceCents = 95)))
+        val id = repository.observeItems().first().single().id
+
+        repository.updatePrice(id, 109)
+
+        assertEquals(item("Leche", quantity = 3).copy(id = id, priceCents = 109), repository.observeItem(id).first())
+    }
 }

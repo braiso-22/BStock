@@ -63,6 +63,11 @@ class FirestoreItemRepository(
         collection.document(id).update(FIELD_QUANTITY, quantity.coerceAtLeast(0)).await()
     }
 
+    override suspend fun updatePrice(id: String, priceCents: Int) {
+        ensureSignedIn()
+        collection.document(id).update(FIELD_PRICE_CENTS, priceCents.coerceAtLeast(0)).await()
+    }
+
     override suspend fun delete(id: String) {
         ensureSignedIn()
         collection.document(id).delete().await()

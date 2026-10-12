@@ -49,6 +49,13 @@ class InMemoryItemRepository(initialItems: List<Item> = sampleItems) : ItemRepos
         }
     }
 
+    override suspend fun updatePrice(id: String, priceCents: Int) {
+        state.update {
+            val item = it.items[id] ?: return@update it
+            it.copy(items = it.items + (id to item.copy(priceCents = priceCents.coerceAtLeast(0))))
+        }
+    }
+
     override suspend fun delete(id: String) {
         state.update { it.copy(items = it.items - id) }
     }

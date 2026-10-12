@@ -15,5 +15,7 @@ interface ItemRepository {
 
     suspend fun updateQuantity(id: String, quantity: Int)
 
+    suspend fun updatePrice(id: String, priceCents: Int)
+
     suspend fun delete(id: String)
 }

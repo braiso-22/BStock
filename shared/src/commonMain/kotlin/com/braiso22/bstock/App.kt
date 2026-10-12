@@ -113,6 +113,7 @@ fun App(repository: ItemRepository) {
                         shopping = shopping,
                         onItemClick = { navController.navigate(DetailRoute(it.id)) },
                         onToggleChecked = { inventoryViewModel.toggleChecked(it.id) },
+                        onPriceChange = { item, priceCents -> inventoryViewModel.updatePrice(item.id, priceCents) },
                         onStartShopping = inventoryViewModel::startShopping,
                         onFinishShopping = inventoryViewModel::finishShopping,
                     )
