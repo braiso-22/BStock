@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -75,6 +76,7 @@ fun RestockScreen(
     // Barra grande que se encoge al hacer scroll pero nunca desaparece: el total queda siempre a la vista.
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var editingPriceId by remember { mutableStateOf<String?>(null) }
+    val listState = rememberLazyListState()
     // En modo compra la lista deja de ser una alarma (rojo) y pasa a ser una lista de tareas (verde).
     val dark = isSystemInDarkTheme()
     val shoppingContainer = if (dark) Color(0xFF1E3B28) else Color(0xFFDDF3E2)
@@ -134,6 +136,7 @@ fun RestockScreen(
                 )
             } else {
                 LazyColumn(
+                    state = listState,
                     modifier = modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 88.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -146,7 +149,19 @@ fun RestockScreen(
                             modifier = Modifier.animateItem(),
                             supportingText = "Tienes ${item.quantity} · Mínimo: ${item.minimum}" +
                                 if (item.packSize > 1) " · Pack de ${item.packSize}" else "",
-                            onClick = { if (shopping.active) onToggleChecked(item) else onItemClick(item) },
+                            onClick = {
+                                if (shopping.active) {
+                                    // El item marcado baja al final; sin esto la lista se iría detrás de él.
+                                    // Se fija la posición actual por índice para que lo de arriba siga arriba.
+                                    listState.requestScrollToItem(
+                                        listState.firstVisibleItemIndex,
+                                        listState.firstVisibleItemScrollOffset,
+                                    )
+                                    onToggleChecked(item)
+                                } else {
+                                    onItemClick(item)
+                                }
+                            },
                             crossedOut = checked,
                             containerColor = if (shopping.active) shoppingContainer else null,
                             trailing = {
