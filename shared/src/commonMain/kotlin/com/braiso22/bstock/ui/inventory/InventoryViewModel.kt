@@ -35,9 +35,8 @@ sealed interface ItemsUiState {
     }
 }
 
-/** Modo compra: la lista de "por reponer" pasa a ser una lista de la compra en la que se van tachando items. */
+/** Lista de la compra: los items por reponer que ya se han metido en el carro. */
 data class ShoppingUiState(
-    val active: Boolean = false,
     val checkedIds: Set<String> = emptySet(),
 )
 
@@ -51,10 +50,7 @@ class InventoryViewModel(private val repository: ItemRepository) : ViewModel() {
     private val _shopping = MutableStateFlow(ShoppingUiState())
     val shopping: StateFlow<ShoppingUiState> = _shopping.asStateFlow()
 
-    fun startShopping() {
-        _shopping.value = ShoppingUiState(active = true)
-    }
-
+    /** Vacía el carro para que la próxima compra empiece de cero. */
     fun finishShopping() {
         _shopping.value = ShoppingUiState()
     }

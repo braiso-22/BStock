@@ -29,6 +29,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import bstock.shared.generated.resources.Res
+import bstock.shared.generated.resources.ic_basket
 import bstock.shared.generated.resources.ic_cart
 import bstock.shared.generated.resources.ic_home
 import com.braiso22.bstock.data.ItemRepository
@@ -42,6 +43,7 @@ import com.braiso22.bstock.ui.inventory.InventoryScreen
 import com.braiso22.bstock.ui.inventory.InventoryViewModel
 import com.braiso22.bstock.ui.inventory.ItemsUiState
 import com.braiso22.bstock.ui.inventory.RestockScreen
+import com.braiso22.bstock.ui.inventory.ShoppingScreen
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.painterResource
 
@@ -50,6 +52,9 @@ data object InventoryRoute
 
 @Serializable
 data object RestockRoute
+
+@Serializable
+data object ShoppingRoute
 
 @Serializable
 data class DetailRoute(val id: String)
@@ -67,11 +72,12 @@ fun App(repository: ItemRepository, sounds: SoundPlayer = NoSound) {
         val destination = navController.currentBackStackEntryAsState().value?.destination
         val onInventory = destination?.hasRoute<InventoryRoute>() == true
         val onRestock = destination?.hasRoute<RestockRoute>() == true
+        val onShopping = destination?.hasRoute<ShoppingRoute>() == true
 
         Scaffold(
             contentWindowInsets = WindowInsets(0),
             bottomBar = {
-                if (onInventory || onRestock) {
+                if (onInventory || onRestock || onShopping) {
                     val belowMinimumCount = (itemsState as? ItemsUiState.Success)?.belowMinimum?.size ?: 0
                     NavigationBar {
                         NavigationBarItem(
@@ -92,6 +98,12 @@ fun App(repository: ItemRepository, sounds: SoundPlayer = NoSound) {
                             },
                             label = { Text("Por reponer") },
                         )
+                        NavigationBarItem(
+                            selected = onShopping,
+                            onClick = { navController.navigateToTab(ShoppingRoute) },
+                            icon = { Icon(painterResource(Res.drawable.ic_basket), contentDescription = null) },
+                            label = { Text("Compra") },
+                        )
                     }
                 }
             },
@@ -109,17 +121,21 @@ fun App(repository: ItemRepository, sounds: SoundPlayer = NoSound) {
                     )
                 }
                 composable<RestockRoute> {
-                    val shopping by inventoryViewModel.shopping.collectAsStateWithLifecycle()
                     RestockScreen(
                         state = itemsState,
-                        shopping = shopping,
                         onItemClick = { navController.navigate(DetailRoute(it.id)) },
+                    )
+                }
+                composable<ShoppingRoute> {
+                    val shopping by inventoryViewModel.shopping.collectAsStateWithLifecycle()
+                    ShoppingScreen(
+                        state = itemsState,
+                        shopping = shopping,
                         onToggleChecked = {
                             if (it.id !in shopping.checkedIds) sounds.playCheck()
                             inventoryViewModel.toggleChecked(it.id)
                         },
                         onPriceChange = { item, priceCents -> inventoryViewModel.updatePrice(item.id, priceCents) },
-                        onStartShopping = inventoryViewModel::startShopping,
                         onFinishShopping = inventoryViewModel::finishShopping,
                     )
                 }

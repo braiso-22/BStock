@@ -12,22 +12,18 @@ class ShoppingModeTest {
 
     @Test
     fun togglingChecksAndUnchecksItems() {
-        viewModel.startShopping()
         viewModel.toggleChecked("a")
         viewModel.toggleChecked("b")
         viewModel.toggleChecked("a")
 
-        assertEquals(ShoppingUiState(active = true, checkedIds = setOf("b")), viewModel.shopping.value)
+        assertEquals(ShoppingUiState(checkedIds = setOf("b")), viewModel.shopping.value)
     }
 
     @Test
-    fun finishingClearsTheCartAndANewTripStartsEmpty() {
-        viewModel.startShopping()
+    fun finishingEmptiesTheCart() {
         viewModel.toggleChecked("a")
         viewModel.finishShopping()
-        assertEquals(ShoppingUiState(), viewModel.shopping.value)
 
-        viewModel.startShopping()
-        assertEquals(ShoppingUiState(active = true), viewModel.shopping.value)
+        assertEquals(ShoppingUiState(), viewModel.shopping.value)
     }
 }
