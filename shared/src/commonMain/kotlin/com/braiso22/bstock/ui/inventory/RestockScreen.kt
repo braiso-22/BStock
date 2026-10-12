@@ -1,5 +1,6 @@
 package com.braiso22.bstock.ui.inventory
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -74,6 +75,10 @@ fun RestockScreen(
     // Barra grande que se encoge al hacer scroll pero nunca desaparece: el total queda siempre a la vista.
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var editingPriceId by remember { mutableStateOf<String?>(null) }
+    // En modo compra la lista deja de ser una alarma (rojo) y pasa a ser una lista de tareas (verde).
+    val dark = isSystemInDarkTheme()
+    val shoppingContainer = if (dark) Color(0xFF1E3B28) else Color(0xFFDDF3E2)
+    val shoppingAccent = if (dark) Color(0xFF8FD5A6) else Color(0xFF2E7D4F)
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -143,15 +148,16 @@ fun RestockScreen(
                                 if (item.packSize > 1) " · Pack de ${item.packSize}" else "",
                             onClick = { if (shopping.active) onToggleChecked(item) else onItemClick(item) },
                             crossedOut = checked,
+                            containerColor = if (shopping.active) shoppingContainer else null,
                             trailing = {
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
                                         text = buyLabel(item),
                                         style = MaterialTheme.typography.labelLarge,
-                                        color = if (checked) {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        } else {
-                                            MaterialTheme.colorScheme.error
+                                        color = when {
+                                            checked -> MaterialTheme.colorScheme.onSurfaceVariant
+                                            shopping.active -> shoppingAccent
+                                            else -> MaterialTheme.colorScheme.error
                                         },
                                     )
                                     if (shopping.active) {

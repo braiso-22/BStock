@@ -4,6 +4,7 @@ import android.app.Application
 import com.braiso22.bstock.data.FirestoreItemRepository
 import com.braiso22.bstock.data.InMemoryItemRepository
 import com.braiso22.bstock.data.ItemRepository
+import com.braiso22.bstock.ui.BellSoundPlayer
 
 class BStockApplication : Application() {
     /**
@@ -13,4 +14,6 @@ class BStockApplication : Application() {
     val repository: ItemRepository by lazy {
         if (BuildConfig.USE_IN_MEMORY_DATA) InMemoryItemRepository() else FirestoreItemRepository()
     }
+
+    val sounds by lazy { BellSoundPlayer() }
 }

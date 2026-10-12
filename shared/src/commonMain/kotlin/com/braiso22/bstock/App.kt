@@ -32,6 +32,8 @@ import bstock.shared.generated.resources.Res
 import bstock.shared.generated.resources.ic_cart
 import bstock.shared.generated.resources.ic_home
 import com.braiso22.bstock.data.ItemRepository
+import com.braiso22.bstock.ui.NoSound
+import com.braiso22.bstock.ui.SoundPlayer
 import com.braiso22.bstock.ui.detail.ItemDetailScreen
 import com.braiso22.bstock.ui.detail.ItemDetailViewModel
 import com.braiso22.bstock.ui.form.ItemFormScreen
@@ -56,7 +58,7 @@ data class DetailRoute(val id: String)
 data class FormRoute(val id: String? = null)
 
 @Composable
-fun App(repository: ItemRepository) {
+fun App(repository: ItemRepository, sounds: SoundPlayer = NoSound) {
     MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
         val navController = rememberNavController()
         val inventoryViewModel = viewModel { InventoryViewModel(repository) }
@@ -112,7 +114,10 @@ fun App(repository: ItemRepository) {
                         state = itemsState,
                         shopping = shopping,
                         onItemClick = { navController.navigate(DetailRoute(it.id)) },
-                        onToggleChecked = { inventoryViewModel.toggleChecked(it.id) },
+                        onToggleChecked = {
+                            if (it.id !in shopping.checkedIds) sounds.playCheck()
+                            inventoryViewModel.toggleChecked(it.id)
+                        },
                         onPriceChange = { item, priceCents -> inventoryViewModel.updatePrice(item.id, priceCents) },
                         onStartShopping = inventoryViewModel::startShopping,
                         onFinishShopping = inventoryViewModel::finishShopping,

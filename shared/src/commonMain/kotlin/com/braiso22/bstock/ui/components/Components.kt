@@ -79,6 +79,8 @@ fun ItemRow(
     modifier: Modifier = Modifier,
     /** Item ya hecho (p. ej. metido en el carro): fila en gris y texto tachado. */
     crossedOut: Boolean = false,
+    /** Fondo a usar en vez del de por defecto (que depende de si está bajo mínimo). */
+    containerColor: Color? = null,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val decoration = if (crossedOut) TextDecoration.LineThrough else null
@@ -88,6 +90,7 @@ fun ItemRow(
         colors = CardDefaults.cardColors(
             containerColor = when {
                 crossedOut -> MaterialTheme.colorScheme.surfaceContainerHighest
+                containerColor != null -> containerColor
                 item.isBelowMinimum -> MaterialTheme.colorScheme.errorContainer
                 else -> MaterialTheme.colorScheme.surfaceContainerLow
             },

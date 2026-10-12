@@ -10,9 +10,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        val repository = (application as BStockApplication).repository
+        val app = application as BStockApplication
         setContent {
-            App(repository)
+            App(app.repository, app.sounds)
         }
     }
 }
