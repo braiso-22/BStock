@@ -12,7 +12,9 @@ service cloud.firestore {
         && request.resource.data.minimum >= 0
         && request.resource.data.imageUrl is string
         && request.resource.data.get('priceCents', 0) is int
-        && request.resource.data.get('priceCents', 0) >= 0;
+        && request.resource.data.get('priceCents', 0) >= 0
+        && request.resource.data.get('packSize', 1) is int
+        && request.resource.data.get('packSize', 1) >= 1;
     }
   }
 }

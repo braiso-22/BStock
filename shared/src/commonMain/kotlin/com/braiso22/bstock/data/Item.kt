@@ -6,16 +6,21 @@ data class Item(
     val quantity: Int,
     val minimum: Int,
     val imageUrl: String,
-    /** Precio por unidad en céntimos; 0 si no se conoce. */
+    /** Precio de un pack (o de una unidad si [packSize] es 1) en céntimos; 0 si no se conoce. */
     val priceCents: Int = 0,
+    /** Unidades que trae cada pack al comprarlo. El stock y el mínimo se cuentan siempre en unidades. */
+    val packSize: Int = 1,
 ) {
     val isBelowMinimum: Boolean get() = quantity < minimum
 
     /** Unidades que faltan para volver a llegar al mínimo. */
     val missing: Int get() = (minimum - quantity).coerceAtLeast(0)
 
+    /** Packs que hay que comprar para volver al mínimo, redondeando hacia arriba. */
+    val packsToBuy: Int get() = (missing + packSize - 1) / packSize
+
     /** Lo que costaría reponer lo que falta, en céntimos. */
-    val restockCostCents: Int get() = missing * priceCents
+    val restockCostCents: Int get() = packsToBuy * priceCents
 }
 
 /** Céntimos en formato español: 108 → "1,08 €". */

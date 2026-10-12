@@ -139,13 +139,14 @@ fun RestockScreen(
                         ItemRow(
                             item = item,
                             modifier = Modifier.animateItem(),
-                            supportingText = "Tienes ${item.quantity} · Mínimo: ${item.minimum}",
+                            supportingText = "Tienes ${item.quantity} · Mínimo: ${item.minimum}" +
+                                if (item.packSize > 1) " · Pack de ${item.packSize}" else "",
                             onClick = { if (shopping.active) onToggleChecked(item) else onItemClick(item) },
                             crossedOut = checked,
                             trailing = {
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
-                                        text = "Faltan ${item.missing}",
+                                        text = buyLabel(item),
                                         style = MaterialTheme.typography.labelLarge,
                                         color = if (checked) {
                                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -223,8 +224,8 @@ private fun PriceDialog(item: Item, onDismiss: () -> Unit, onConfirm: (Int) -> U
             OutlinedTextField(
                 value = field,
                 onValueChange = { new -> field = new.copy(text = new.text.filter { it.isDigit() || it == ',' || it == '.' }) },
-                label = { Text("Precio por unidad (€)") },
-                supportingText = { value?.let { Text("Faltan ${item.missing} · ${formatPrice(it * item.missing)}") } },
+                label = { Text(if (item.packSize > 1) "Precio del pack de ${item.packSize} (€)" else "Precio (€)") },
+                supportingText = { value?.let { Text("${buyLabel(item)} · ${formatPrice(it * item.packsToBuy)}") } },
                 singleLine = true,
                 isError = value == null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
@@ -237,4 +238,11 @@ private fun PriceDialog(item: Item, onDismiss: () -> Unit, onConfirm: (Int) -> U
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
     )
+}
+
+/** Qué hay que coger en la tienda: unidades sueltas o packs. */
+private fun buyLabel(item: Item): String = when {
+    item.packSize == 1 -> "Faltan ${item.missing}"
+    item.packsToBuy == 1 -> "1 pack"
+    else -> "${item.packsToBuy} packs"
 }

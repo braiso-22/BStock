@@ -60,4 +60,16 @@ class RestockCostTest {
         assertEquals(listOf("b", "d", "a", "c"), state.shoppingOrder(setOf("c", "a")).map { it.id })
         assertEquals(listOf("a", "b", "c", "d"), state.shoppingOrder(emptySet()).map { it.id })
     }
+
+    @Test
+    fun packsAreRoundedUpAndPricedPerPack() {
+        val yogur = item("Yogur", quantity = 3, minimum = 8, priceCents = 140).copy(packSize = 4)
+        val exact = item("Leche", quantity = 0, minimum = 12, priceCents = 570).copy(packSize = 6)
+
+        assertEquals(5, yogur.missing)
+        assertEquals(2, yogur.packsToBuy)
+        assertEquals(280, yogur.restockCostCents)
+        assertEquals(2, exact.packsToBuy)
+        assertEquals(1140, exact.restockCostCents)
+    }
 }

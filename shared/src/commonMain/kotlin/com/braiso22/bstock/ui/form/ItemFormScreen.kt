@@ -94,15 +94,23 @@ fun ItemFormScreen(
                     modifier = Modifier.weight(1f),
                 )
             }
-            OutlinedTextField(
-                value = viewModel.price,
-                onValueChange = { text -> viewModel.price = text.filter { it.isDigit() || it == ',' || it == '.' } },
-                label = { Text("Precio (€)") },
-                singleLine = true,
-                isError = viewModel.price.isNotBlank() && parsePrice(viewModel.price) == null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                NumberField(
+                    value = viewModel.packSize,
+                    onValueChange = { viewModel.packSize = it },
+                    label = "Uds. por pack",
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = viewModel.price,
+                    onValueChange = { text -> viewModel.price = text.filter { it.isDigit() || it == ',' || it == '.' } },
+                    label = { Text(if ((viewModel.packSize.toIntOrNull() ?: 1) > 1) "Precio del pack (€)" else "Precio (€)") },
+                    singleLine = true,
+                    isError = viewModel.price.isNotBlank() && parsePrice(viewModel.price) == null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                    modifier = Modifier.weight(1f),
+                )
+            }
             OutlinedTextField(
                 value = viewModel.imageUrl,
                 onValueChange = { viewModel.imageUrl = it },

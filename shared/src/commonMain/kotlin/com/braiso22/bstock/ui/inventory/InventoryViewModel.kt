@@ -59,7 +59,7 @@ class InventoryViewModel(private val repository: ItemRepository) : ViewModel() {
         _shopping.value = ShoppingUiState()
     }
 
-    /** Ajusta el precio por unidad al real de la tienda; el total se recalcula solo con la escucha en tiempo real. */
+    /** Ajusta el precio (del pack, si lo hay) al real de la tienda; el total se recalcula solo con la escucha en tiempo real. */
     fun updatePrice(id: String, priceCents: Int) {
         viewModelScope.launch {
             runCatching { repository.updatePrice(id, priceCents) }

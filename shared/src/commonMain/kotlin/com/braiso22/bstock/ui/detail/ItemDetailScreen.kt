@@ -159,7 +159,10 @@ private fun ItemDetailContent(
 
         Text(item.name, style = MaterialTheme.typography.headlineMedium)
         if (item.priceCents > 0) {
-            Text(formatPrice(item.priceCents), style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = formatPrice(item.priceCents) + if (item.packSize > 1) " · pack de ${item.packSize}" else "",
+                style = MaterialTheme.typography.titleLarge,
+            )
         }
 
         Card(

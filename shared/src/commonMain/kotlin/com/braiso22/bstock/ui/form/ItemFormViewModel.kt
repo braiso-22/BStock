@@ -25,6 +25,7 @@ class ItemFormViewModel(
     var minimum by mutableStateOf("")
     var imageUrl by mutableStateOf("")
     var price by mutableStateOf("")
+    var packSize by mutableStateOf("1")
 
     var isLoading by mutableStateOf(isEditing)
         private set
@@ -38,7 +39,8 @@ class ItemFormViewModel(
     val canSave: Boolean
         get() = !isLoading && !isSaving && name.isNotBlank() &&
             quantity.toIntOrNull() != null && minimum.toIntOrNull() != null &&
-            (price.isBlank() || parsePrice(price) != null)
+            (price.isBlank() || parsePrice(price) != null) &&
+            (packSize.toIntOrNull() ?: 0) >= 1
 
     init {
         if (itemId != null) {
@@ -51,6 +53,7 @@ class ItemFormViewModel(
                             minimum = item.minimum.toString()
                             imageUrl = item.imageUrl
                             price = if (item.priceCents > 0) formatPrice(item.priceCents).removeSuffix(" €") else ""
+                            packSize = item.packSize.toString()
                         }
                     }
                     .onFailure { error = it.message }
@@ -68,6 +71,7 @@ class ItemFormViewModel(
             minimum = minimum.toInt(),
             imageUrl = imageUrl.trim(),
             priceCents = parsePrice(price) ?: 0,
+            packSize = packSize.toInt(),
         )
         isSaving = true
         error = null
