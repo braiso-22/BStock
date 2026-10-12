@@ -29,16 +29,25 @@ sealed interface ItemsUiState {
         /** Lista de la compra: primero lo que falta por coger y al final lo ya marcado, cada grupo en su orden. */
         fun shoppingOrder(checkedIds: Set<String>): List<Item> = belowMinimum.sortedBy { it.id in checkedIds }
 
-        /** Parte de [restockCostCents] que corresponde a los items ya metidos en el carro. */
-        fun cartCostCents(checkedIds: Set<String>): Int =
-            belowMinimum.filter { it.id in checkedIds }.sumOf { it.restockCostCents }
+        /** Lo que costará la compra con las cantidades elegidas en la tienda. */
+        fun shoppingCostCents(shopping: ShoppingUiState): Int = belowMinimum.sumOf { shopping.costCents(it) }
+
+        /** Parte de [shoppingCostCents] que corresponde a los items ya metidos en el carro. */
+        fun cartCostCents(shopping: ShoppingUiState): Int =
+            belowMinimum.filter { it.id in shopping.checkedIds }.sumOf { shopping.costCents(it) }
     }
 }
 
-/** Lista de la compra: los items por reponer que ya se han metido en el carro. */
+/** Lista de la compra: los items por reponer que ya se han metido en el carro y las cantidades cambiadas en la tienda. */
 data class ShoppingUiState(
     val checkedIds: Set<String> = emptySet(),
-)
+    /** Packs (o unidades) a comprar por item cuando no son los que harían falta para llegar al mínimo. */
+    val packs: Map<String, Int> = emptyMap(),
+) {
+    fun packsToBuy(item: Item): Int = packs[item.id] ?: item.packsToBuy
+
+    fun costCents(item: Item): Int = packsToBuy(item) * item.priceCents
+}
 
 /** Compartido por la pantalla de inventario y la de "por reponer": ambas leen la misma escucha en tiempo real. */
 class InventoryViewModel(private val repository: ItemRepository) : ViewModel() {
@@ -50,7 +59,7 @@ class InventoryViewModel(private val repository: ItemRepository) : ViewModel() {
     private val _shopping = MutableStateFlow(ShoppingUiState())
     val shopping: StateFlow<ShoppingUiState> = _shopping.asStateFlow()
 
-    /** Vacía el carro para que la próxima compra empiece de cero. */
+    /** Vacía el carro y olvida las cantidades cambiadas para que la próxima compra empiece de cero. */
     fun finishShopping() {
         _shopping.value = ShoppingUiState()
     }
@@ -59,6 +68,13 @@ class InventoryViewModel(private val repository: ItemRepository) : ViewModel() {
     fun updatePrice(id: String, priceCents: Int) {
         viewModelScope.launch {
             runCatching { repository.updatePrice(id, priceCents) }
+        }
+    }
+
+    /** Cambia cuánto se compra de un item solo para esta compra; volver a lo sugerido deja de contar como cambio. */
+    fun setPacksToBuy(item: Item, packs: Int) {
+        _shopping.update {
+            it.copy(packs = if (packs == item.packsToBuy) it.packs - item.id else it.packs + (item.id to packs))
         }
     }
 

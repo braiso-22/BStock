@@ -2,6 +2,7 @@ package com.braiso22.bstock
 
 import com.braiso22.bstock.data.Item
 import com.braiso22.bstock.ui.inventory.ItemsUiState
+import com.braiso22.bstock.ui.inventory.ShoppingUiState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -46,9 +47,24 @@ class RestockCostTest {
             ),
         )
 
-        assertEquals(0, state.cartCostCents(emptySet()))
-        assertEquals(2 * 489, state.cartCostCents(setOf("b")))
-        assertEquals(state.restockCostCents, state.cartCostCents(setOf("a", "b")))
+        assertEquals(0, state.cartCostCents(ShoppingUiState()))
+        assertEquals(2 * 489, state.cartCostCents(ShoppingUiState(checkedIds = setOf("b"))))
+        assertEquals(state.restockCostCents, state.cartCostCents(ShoppingUiState(checkedIds = setOf("a", "b"))))
+    }
+
+    @Test
+    fun changedPacksReplaceTheSuggestedOnesInTheShoppingCost() {
+        val state = ItemsUiState.Success(
+            listOf(
+                item("Panacotta", quantity = 1, minimum = 4, priceCents = 105).copy(id = "a"),
+                item("Yogur", quantity = 3, minimum = 8, priceCents = 140).copy(id = "b", packSize = 4),
+            ),
+        )
+        val shopping = ShoppingUiState(checkedIds = setOf("b"), packs = mapOf("b" to 5))
+
+        assertEquals(3 * 105 + 2 * 140, state.restockCostCents)
+        assertEquals(3 * 105 + 5 * 140, state.shoppingCostCents(shopping))
+        assertEquals(5 * 140, state.cartCostCents(shopping))
     }
 
     @Test

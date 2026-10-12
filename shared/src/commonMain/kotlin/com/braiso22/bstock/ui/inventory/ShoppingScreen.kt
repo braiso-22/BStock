@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,6 +22,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
@@ -49,13 +52,16 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import bstock.shared.generated.resources.Res
+import bstock.shared.generated.resources.ic_add
 import bstock.shared.generated.resources.ic_check_circle
+import bstock.shared.generated.resources.ic_remove
 import com.braiso22.bstock.data.Item
 import com.braiso22.bstock.data.formatPrice
 import com.braiso22.bstock.data.parsePrice
@@ -75,6 +81,7 @@ fun ShoppingScreen(
     shopping: ShoppingUiState,
     onToggleChecked: (Item) -> Unit,
     onPriceChange: (Item, Int) -> Unit,
+    onPacksChange: (Item, Int) -> Unit,
     onFinishShopping: () -> Unit,
 ) {
     val success = state as? ItemsUiState.Success
@@ -82,6 +89,7 @@ fun ShoppingScreen(
     // Barra grande que se encoge al hacer scroll pero nunca desaparece: el total queda siempre a la vista.
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var editingPriceId by remember { mutableStateOf<String?>(null) }
+    var editingPacksId by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     // La lista de la compra no es una alarma (rojo) sino una lista de tareas (verde).
     val dark = isSystemInDarkTheme()
@@ -97,8 +105,8 @@ fun ShoppingScreen(
                     } else {
                         Text(
                             shoppingTitle(
-                                cartCents = success.cartCostCents(shopping.checkedIds),
-                                totalCents = success.restockCostCents,
+                                cartCents = success.cartCostCents(shopping),
+                                totalCents = success.shoppingCostCents(shopping),
                                 cartColor = MaterialTheme.colorScheme.primary,
                                 totalColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             ),
@@ -145,6 +153,7 @@ fun ShoppingScreen(
                         ShoppingItemCard(
                             item = item,
                             checked = item.id in shopping.checkedIds,
+                            packs = shopping.packsToBuy(item),
                             containerColor = shoppingContainer,
                             accentColor = shoppingAccent,
                             modifier = Modifier.animateItem(),
@@ -158,6 +167,7 @@ fun ShoppingScreen(
                                 onToggleChecked(item)
                             },
                             onEditPrice = { editingPriceId = item.id },
+                            onEditPacks = { editingPacksId = item.id },
                         )
                     }
                 }
@@ -170,10 +180,23 @@ fun ShoppingScreen(
     if (editingItem != null) {
         PriceDialog(
             item = editingItem,
+            packs = shopping.packsToBuy(editingItem),
             onDismiss = { editingPriceId = null },
             onConfirm = {
                 editingPriceId = null
                 onPriceChange(editingItem, it)
+            },
+        )
+    }
+    val editingPacksItem = success?.items?.find { it.id == editingPacksId }
+    if (editingPacksItem != null) {
+        PacksDialog(
+            item = editingPacksItem,
+            packs = shopping.packsToBuy(editingPacksItem),
+            onDismiss = { editingPacksId = null },
+            onConfirm = {
+                editingPacksId = null
+                onPacksChange(editingPacksItem, it)
             },
         )
     }
@@ -184,10 +207,12 @@ fun ShoppingScreen(
 private fun ShoppingItemCard(
     item: Item,
     checked: Boolean,
+    packs: Int,
     containerColor: Color,
     accentColor: Color,
     onClick: () -> Unit,
     onEditPrice: () -> Unit,
+    onEditPacks: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val decoration = if (checked) TextDecoration.LineThrough else null
@@ -220,14 +245,21 @@ private fun ShoppingItemCard(
                     textDecoration = decoration,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = buyLabel(item),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (checked) MaterialTheme.colorScheme.onSurfaceVariant else accentColor,
-                        modifier = Modifier.weight(1f),
-                    )
+                    // Pegado al texto de arriba aunque el botón tenga su propio margen interior.
+                    TextButton(
+                        onClick = onEditPacks,
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        modifier = Modifier.offset(x = (-8).dp),
+                    ) {
+                        Text(
+                            text = toBuyLabel(item, packs),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (checked) MaterialTheme.colorScheme.onSurfaceVariant else accentColor,
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
                     TextButton(onClick = onEditPrice, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                        Text(if (item.priceCents > 0) formatPrice(item.restockCostCents) else "Añadir precio")
+                        Text(if (item.priceCents > 0) formatPrice(packs * item.priceCents) else "Añadir precio")
                     }
                 }
             }
@@ -246,14 +278,66 @@ private fun shoppingTitle(cartCents: Int, totalCents: Int, cartColor: Color, tot
 private fun shoppingSubtitle(state: ItemsUiState.Success, shopping: ShoppingUiState): String {
     val parts = mutableListOf(
         "En el carro",
-        "Falta ${formatPrice(state.restockCostCents - state.cartCostCents(shopping.checkedIds))}",
+        "Falta ${formatPrice(state.shoppingCostCents(shopping) - state.cartCostCents(shopping))}",
     )
     if (state.restockWithoutPrice > 0) parts += "${state.restockWithoutPrice} sin precio"
     return parts.joinToString(" · ")
 }
 
+/** Qué se va a coger en la tienda: "Comprar 3" en unidades sueltas o "Comprar 2 packs". */
+private fun toBuyLabel(item: Item, packs: Int): String = when {
+    item.packSize == 1 -> "Comprar $packs"
+    packs == 1 -> "Comprar 1 pack"
+    else -> "Comprar $packs packs"
+}
+
+/** Elige cuánto comprar de un item con +/-; parte de lo que haya ahora y nunca baja de uno. */
 @Composable
-private fun PriceDialog(item: Item, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
+private fun PacksDialog(item: Item, packs: Int, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
+    var value by remember { mutableStateOf(packs) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(item.name) },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FilledTonalIconButton(onClick = { value-- }, enabled = value > 1) {
+                        Icon(painterResource(Res.drawable.ic_remove), contentDescription = "Uno menos")
+                    }
+                    Text(
+                        text = value.toString(),
+                        style = MaterialTheme.typography.displaySmall,
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                    )
+                    FilledTonalIconButton(onClick = { value++ }) {
+                        Icon(painterResource(Res.drawable.ic_add), contentDescription = "Uno más")
+                    }
+                }
+                Text(
+                    text = packsSummary(item, value),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = { onConfirm(value) }) { Text("Guardar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+    )
+}
+
+/** Debajo del contador: lo que suponen esos packs en unidades y euros, y lo que haría falta para llegar al mínimo. */
+private fun packsSummary(item: Item, packs: Int): String {
+    val parts = mutableListOf<String>()
+    if (item.packSize > 1) parts += "${packs * item.packSize} unidades"
+    if (item.priceCents > 0) parts += formatPrice(packs * item.priceCents)
+    val needed = if (item.packSize > 1) "${item.packsToBuy} ${if (item.packsToBuy == 1) "pack" else "packs"}" else "${item.missing}"
+    return parts.joinToString(" · ") + (if (parts.isEmpty()) "" else "\n") + "Para llegar al mínimo: $needed"
+}
+
+@Composable
+private fun PriceDialog(item: Item, packs: Int, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
     // Texto seleccionado de entrada para que lo que se escriba reemplace el precio actual.
     var field by remember {
         val text = if (item.priceCents > 0) formatPrice(item.priceCents).removeSuffix(" €") else ""
@@ -270,7 +354,7 @@ private fun PriceDialog(item: Item, onDismiss: () -> Unit, onConfirm: (Int) -> U
                 value = field,
                 onValueChange = { new -> field = new.copy(text = new.text.filter { it.isDigit() || it == ',' || it == '.' }) },
                 label = { Text(if (item.packSize > 1) "Precio del pack de ${item.packSize} (€)" else "Precio (€)") },
-                supportingText = { value?.let { Text("${buyLabel(item)} · ${formatPrice(it * item.packsToBuy)}") } },
+                supportingText = { value?.let { Text("${toBuyLabel(item, packs)} · ${formatPrice(it * packs)}") } },
                 singleLine = true,
                 isError = value == null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),

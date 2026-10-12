@@ -136,6 +136,7 @@ fun App(repository: ItemRepository, sounds: SoundPlayer = NoSound) {
                             inventoryViewModel.toggleChecked(it.id)
                         },
                         onPriceChange = { item, priceCents -> inventoryViewModel.updatePrice(item.id, priceCents) },
+                        onPacksChange = inventoryViewModel::setPacksToBuy,
                         onFinishShopping = inventoryViewModel::finishShopping,
                     )
                 }

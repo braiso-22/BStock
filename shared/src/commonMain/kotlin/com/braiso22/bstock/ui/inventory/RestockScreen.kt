@@ -114,7 +114,7 @@ private fun restockSubtitle(state: ItemsUiState.Success): String {
 }
 
 /** Qué hay que coger en la tienda: unidades sueltas o packs. */
-internal fun buyLabel(item: Item): String = when {
+private fun buyLabel(item: Item): String = when {
     item.packSize == 1 -> "Faltan ${item.missing}"
     item.packsToBuy == 1 -> "1 pack"
     else -> "${item.packsToBuy} packs"
