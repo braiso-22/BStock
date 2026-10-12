@@ -35,3 +35,29 @@ fun parsePrice(text: String): Int? {
     val (euros, decimals) = match.destructured
     return euros.toInt() * 100 + decimals.padEnd(2, '0').toInt()
 }
+
+/**
+ * Items cuyo nombre contiene todas las palabras buscadas, sin distinguir mayúsculas ni tildes:
+ * "platano" encuentra "Plátano" y "pan molde" encuentra "Pan de molde 820 g".
+ */
+fun List<Item>.filterByName(query: String): List<Item> {
+    val words = query.normalizedForSearch().split(' ').filter { it.isNotEmpty() }
+    if (words.isEmpty()) return this
+    return filter { item ->
+        val name = item.name.normalizedForSearch()
+        words.all { it in name }
+    }
+}
+
+private fun String.normalizedForSearch(): String = lowercase().map {
+    when (it) {
+        'á', 'à', 'ä', 'â' -> 'a'
+        'é', 'è', 'ë', 'ê' -> 'e'
+        'í', 'ì', 'ï', 'î' -> 'i'
+        'ó', 'ò', 'ö', 'ô' -> 'o'
+        'ú', 'ù', 'ü', 'û' -> 'u'
+        'ñ' -> 'n'
+        'ç' -> 'c'
+        else -> it
+    }
+}.joinToString("").trim()
