@@ -1,0 +1,39 @@
+package com.braiso22.bstock
+
+import com.braiso22.bstock.data.Item
+import com.braiso22.bstock.ui.inventory.ItemsUiState
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+class RestockCostTest {
+
+    private fun item(name: String, quantity: Int, minimum: Int, priceCents: Int) =
+        Item(name = name, quantity = quantity, minimum = minimum, imageUrl = "", priceCents = priceCents)
+
+    @Test
+    fun totalAddsMissingUnitsTimesPriceOfItemsBelowMinimum() {
+        val state = ItemsUiState.Success(
+            listOf(
+                item("Panacotta", quantity = 1, minimum = 4, priceCents = 105),
+                item("Jamón", quantity = 0, minimum = 2, priceCents = 489),
+                item("Guacamole", quantity = 5, minimum = 2, priceCents = 169),
+            ),
+        )
+
+        assertEquals(3 * 105 + 2 * 489, state.restockCostCents)
+        assertEquals(0, state.restockWithoutPrice)
+    }
+
+    @Test
+    fun itemsWithoutPriceAreCountedApart() {
+        val state = ItemsUiState.Success(
+            listOf(
+                item("Leche", quantity = 0, minimum = 2, priceCents = 95),
+                item("Detergente", quantity = 0, minimum = 1, priceCents = 0),
+            ),
+        )
+
+        assertEquals(190, state.restockCostCents)
+        assertEquals(1, state.restockWithoutPrice)
+    }
+}

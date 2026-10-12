@@ -13,6 +13,9 @@ data class Item(
 
     /** Unidades que faltan para volver a llegar al mínimo. */
     val missing: Int get() = (minimum - quantity).coerceAtLeast(0)
+
+    /** Lo que costaría reponer lo que falta, en céntimos. */
+    val restockCostCents: Int get() = missing * priceCents
 }
 
 /** Céntimos en formato español: 108 → "1,08 €". */

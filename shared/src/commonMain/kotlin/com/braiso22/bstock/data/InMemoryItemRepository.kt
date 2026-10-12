@@ -55,10 +55,10 @@ class InMemoryItemRepository(initialItems: List<Item> = sampleItems) : ItemRepos
 
     companion object {
         val sampleItems = listOf(
-            Item(name = "Papel higiénico", quantity = 3, minimum = 6, imageUrl = "https://picsum.photos/id/1060/600/400"),
-            Item(name = "Leche", quantity = 2, minimum = 4, imageUrl = "https://picsum.photos/id/30/600/400"),
-            Item(name = "Huevos", quantity = 12, minimum = 6, imageUrl = "https://picsum.photos/id/292/600/400"),
-            Item(name = "Aceite de oliva", quantity = 1, minimum = 1, imageUrl = "https://picsum.photos/id/312/600/400"),
+            Item(name = "Papel higiénico", quantity = 3, minimum = 6, imageUrl = "https://picsum.photos/id/1060/600/400", priceCents = 45),
+            Item(name = "Leche", quantity = 2, minimum = 4, imageUrl = "https://picsum.photos/id/30/600/400", priceCents = 95),
+            Item(name = "Huevos", quantity = 12, minimum = 6, imageUrl = "https://picsum.photos/id/292/600/400", priceCents = 239),
+            Item(name = "Aceite de oliva", quantity = 1, minimum = 1, imageUrl = "https://picsum.photos/id/312/600/400", priceCents = 899),
             Item(name = "Detergente", quantity = 0, minimum = 1, imageUrl = ""),
             Item(name = "Café", quantity = 5, minimum = 2, imageUrl = "https://picsum.photos/id/425/600/400"),
         )

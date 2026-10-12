@@ -15,6 +15,12 @@ sealed interface ItemsUiState {
     data class Error(val message: String) : ItemsUiState
     data class Success(val items: List<Item>) : ItemsUiState {
         val belowMinimum: List<Item> = items.filter { it.isBelowMinimum }
+
+        /** Coste estimado de reponer todo lo que está por debajo del mínimo, en céntimos. */
+        val restockCostCents: Int = belowMinimum.sumOf { it.restockCostCents }
+
+        /** Items por reponer que no tienen precio y por tanto no cuentan en [restockCostCents]. */
+        val restockWithoutPrice: Int = belowMinimum.count { it.priceCents == 0 }
     }
 }
 
