@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import bstock.shared.generated.resources.Res
 import bstock.shared.generated.resources.ic_back
+import com.braiso22.bstock.data.parsePrice
 import com.braiso22.bstock.ui.components.ItemImage
 import com.braiso22.bstock.ui.components.LoadingContent
 import org.jetbrains.compose.resources.painterResource
@@ -93,6 +94,15 @@ fun ItemFormScreen(
                     modifier = Modifier.weight(1f),
                 )
             }
+            OutlinedTextField(
+                value = viewModel.price,
+                onValueChange = { text -> viewModel.price = text.filter { it.isDigit() || it == ',' || it == '.' } },
+                label = { Text("Precio (€)") },
+                singleLine = true,
+                isError = viewModel.price.isNotBlank() && parsePrice(viewModel.price) == null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(
                 value = viewModel.imageUrl,
                 onValueChange = { viewModel.imageUrl = it },

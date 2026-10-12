@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braiso22.bstock.data.Item
 import com.braiso22.bstock.data.ItemRepository
+import com.braiso22.bstock.data.formatPrice
+import com.braiso22.bstock.data.parsePrice
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -22,6 +24,7 @@ class ItemFormViewModel(
     var quantity by mutableStateOf("")
     var minimum by mutableStateOf("")
     var imageUrl by mutableStateOf("")
+    var price by mutableStateOf("")
 
     var isLoading by mutableStateOf(isEditing)
         private set
@@ -34,7 +37,8 @@ class ItemFormViewModel(
 
     val canSave: Boolean
         get() = !isLoading && !isSaving && name.isNotBlank() &&
-            quantity.toIntOrNull() != null && minimum.toIntOrNull() != null
+            quantity.toIntOrNull() != null && minimum.toIntOrNull() != null &&
+            (price.isBlank() || parsePrice(price) != null)
 
     init {
         if (itemId != null) {
@@ -46,6 +50,7 @@ class ItemFormViewModel(
                             quantity = item.quantity.toString()
                             minimum = item.minimum.toString()
                             imageUrl = item.imageUrl
+                            price = if (item.priceCents > 0) formatPrice(item.priceCents).removeSuffix(" €") else ""
                         }
                     }
                     .onFailure { error = it.message }
@@ -62,6 +67,7 @@ class ItemFormViewModel(
             quantity = quantity.toInt(),
             minimum = minimum.toInt(),
             imageUrl = imageUrl.trim(),
+            priceCents = parsePrice(price) ?: 0,
         )
         isSaving = true
         error = null

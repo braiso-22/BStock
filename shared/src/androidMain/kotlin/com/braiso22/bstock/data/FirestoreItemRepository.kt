@@ -78,6 +78,7 @@ class FirestoreItemRepository(
         FIELD_QUANTITY to quantity,
         FIELD_MINIMUM to minimum,
         FIELD_IMAGE_URL to imageUrl,
+        FIELD_PRICE_CENTS to priceCents,
     )
 
     private fun DocumentSnapshot.toItem(): Item? {
@@ -88,6 +89,7 @@ class FirestoreItemRepository(
             quantity = getLong(FIELD_QUANTITY)?.toInt() ?: 0,
             minimum = getLong(FIELD_MINIMUM)?.toInt() ?: 0,
             imageUrl = getString(FIELD_IMAGE_URL).orEmpty(),
+            priceCents = getLong(FIELD_PRICE_CENTS)?.toInt() ?: 0,
         )
     }
 
@@ -97,5 +99,6 @@ class FirestoreItemRepository(
         const val FIELD_QUANTITY = "quantity"
         const val FIELD_MINIMUM = "minimum"
         const val FIELD_IMAGE_URL = "imageUrl"
+        const val FIELD_PRICE_CENTS = "priceCents"
     }
 }

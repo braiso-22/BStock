@@ -53,6 +53,7 @@ import bstock.shared.generated.resources.ic_delete
 import bstock.shared.generated.resources.ic_edit
 import bstock.shared.generated.resources.ic_remove
 import com.braiso22.bstock.data.Item
+import com.braiso22.bstock.data.formatPrice
 import com.braiso22.bstock.ui.components.ItemImage
 import com.braiso22.bstock.ui.components.LoadingContent
 import com.braiso22.bstock.ui.components.MessageContent
@@ -157,6 +158,9 @@ private fun ItemDetailContent(
         ItemImage(item.imageUrl, Modifier.fillMaxWidth().height(240.dp))
 
         Text(item.name, style = MaterialTheme.typography.headlineMedium)
+        if (item.priceCents > 0) {
+            Text(formatPrice(item.priceCents), style = MaterialTheme.typography.titleLarge)
+        }
 
         Card(
             colors = CardDefaults.cardColors(
